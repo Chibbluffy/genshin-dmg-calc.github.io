@@ -95,7 +95,7 @@
             document.getElementById("avgDmgA").innerHTML = avgDmgA;
             document.getElementById("avgDmgB").innerHTML = avgDmgB;
             const betterSet = avgDmgA>avgDmgB ? "A":"B";
-            const setBetterBy = (100-((avgDmgB/avgDmgA)*100)).toFixed(2);
+            const setBetterBy = Math.abs((100-(((avgDmgB)/avgDmgA)*100)).toFixed(2));
             document.getElementById("results").innerHTML = `Set ${betterSet} is better by ${setBetterBy}%`
         }
     </script>
