@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Genshin Impact Damage Simulator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js" integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf" crossorigin="anonymous"></script>
+
+    <script id="worker" type="javascript/worker">
+        self.onmessage = function(e){
+            let totalDmgA = 0;
+            let totalDmgB = 0;
+            let dmg = null;
+            for (let i = 0; i < e.data.simulations; i++){
+                dmg = simulateDamage(e.data.totalAtkA,
+                                         e.data.critRateA, 
+                                         e.data.critDmgA,
+                                         e.data.totalAtkB,
+                                         e.data.critRateB,
+                                         e.data.critDmgB);
+                totalDmgA += dmg.damageA;
+                totalDmgB += dmg.damageB;
+                if (i % (e.data.simulations / 50) == 0){
+                    postMessage({progress: i});
+                }
+            }
+
+            postMessage({totalDmgA: totalDmgA,
+                         totalDmgB: totalDmgB})
+        }
+
+        function simulateDamage(totalAtkA, critRateA, critDmgA, totalAtkB, critRateB, critDmgB){
+            const critRoll = Math.random();
+            let damageA;
+            let damageB;
+            if (critRoll > critRateA/100){
+                damageA = totalAtkA;
+            } else {
+                damageA = totalAtkA * (100 + critDmgA)/100
+            }  
+            if (critRoll > critRateB/100){
+                damageB = totalAtkB;
+            } else {
+                damageB = totalAtkB * (100 + critDmgB)/100
+            }  
+            return {
+                    damageA: damageA,
+                    damageB: damageB
+            };
+        }
+
+    </script>
+    <script>
+        const simulations = 1000000;
+
+        var blob = new Blob([
+                document.querySelector('#worker').textContent
+                ], { type: "text/javascript" })
+
+        var worker;
+
+        function simulate(){
+            const totalAtkA = Number(document.getElementById("totalAtkA").value)
+            const critRateA = Number(document.getElementById("critRateA").value)
+            const critDmgA = Number(document.getElementById("critDmgA").value)
+            const totalAtkB = Number(document.getElementById("totalAtkB").value)
+            const critRateB = Number(document.getElementById("critRateB").value)
+            const critDmgB = Number(document.getElementById("critDmgB").value)
+
+            if (worker) {
+                worker.terminate();
+            }
+            worker = new Worker(window.URL.createObjectURL(blob));
+            worker.onmessage = update;
+
+            worker.postMessage({
+                totalAtkA: totalAtkA,
+                critRateA: critRateA,
+                critDmgA: critDmgA,
+                totalAtkB: totalAtkB,
+                critRateB: critRateB,
+                critDmgB: critDmgB,
+                simulations: simulations
+            })
+        }
+
+        function update(e) {
+            if (typeof e.data.progress !== 'undefined'){
+                    document.getElementById("progress").innerHTML = "Running simulations. Total progress: " + (e.data.progress * 100 / simulations).toFixed(0) + "%";
+                            return;
+            }
+            document.getElementById("progress").innerHTML = "Simulation complete";
+            const avgDmgA = (e.data.totalDmgA/simulations).toFixed(2);
+            const avgDmgB = (e.data.totalDmgB/simulations).toFixed(2);
+            document.getElementById("avgDmgA").innerHTML = avgDmgA;
+            document.getElementById("avgDmgB").innerHTML = avgDmgB;
+            const betterSet = avgDmgA>avgDmgB ? "A":"B";
+            const setBetterBy = (100-((avgDmgB/avgDmgA)*100)).toFixed(2);
+            document.getElementById("results").innerHTML = `Set ${betterSet} is better by ${setBetterBy}%`
+        }
+    </script>
+
+</head>
+<body class="bg-dark">
+
+    <div class="container">
+    <div class="col-md-5">
+
+        <h3>Set A</h3>
+        <label for="totalAtkA" class="form-label">Total Attack</label>
+        <input type="number" class="form-control w-25" id="totalAtkA" value="1000">
+        <label for="critRateA" class="form-label">Crit Rate</label>
+        <input type="number" class="form-control w-25" id="critRateA" value="5">
+        <label for="critDmgA" class="form-label mt-2">Crit Damage</label>
+        <input type="number" class="form-control w-25" id="critDmgA" value="50">
+        <br/>
+
+        <h3>Set B</h3>
+        <label for="totalAtkB" class="form-label">Total Attack</label>
+        <input type="number" class="form-control w-25" id="totalAtkB" value="1000">
+        <label for="critRateB" class="form-label">Crit Rate</label>
+        <input type="number" class="form-control w-25" id="critRateB" value="5">
+        <label for="critDmgB" class="form-label mt-2">Crit Damage</label>
+        <input type="number" class="form-control w-25" id="critDmgB" value="50">
+    </div>
+
+
+        <button type="button" class="btn btn-primary mt-2" onclick="simulate()">Simulate</button>
+        <div id="progress" class="mt-2">This page will run 1,000,000 simulations :D</div>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col">Set</th>
+                    <th scope="Average Damage"></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>A</td><td id="avgDmgA">N/A</td></tr>
+                <tr><td>B</td><td id="avgDmgB">N/A</td></tr>
+                <tr><td>Results</td><td id="results">N/A</td></tr>
+                <tr></tr>
+        </table>
+
+
+</div>
+</body>
+</html>
