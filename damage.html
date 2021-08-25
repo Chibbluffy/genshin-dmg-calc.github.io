@@ -101,9 +101,9 @@
     </script>
 
 </head>
-<body class="bg-light">
+<body class="bg-dark">
 
-    <div class="container">
+    <div class="container text-light">
     <div class="col-md-5">
 
         <h3>Set A</h3>
@@ -123,12 +123,10 @@
         <label for="critDmgB" class="form-label mt-2">Crit Damage</label>
         <input type="number" class="form-control w-25" id="critDmgB" value="50">
     </div>
-
-
         <button type="button" class="btn btn-primary mt-2" onclick="simulate()">Simulate</button>
         <div id="progress" class="mt-2">This page will run 1,000,000 simulations :D</div>
 
-        <table class="table">
+        <table class="table text-light">
             <thead>
                 <tr>
                     <th scope="col">Set</th>
@@ -141,8 +139,6 @@
                 <tr><td>Results</td><td id="results">N/A</td></tr>
                 <tr></tr>
         </table>
-
-
 </div>
 </body>
 </html>
